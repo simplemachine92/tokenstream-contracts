@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.10;
 
-import "../lib/openzeppelin/contracts/access/AccessControl.sol";
+import "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 /// @notice A soulbound take on Rari-Capitals solmate ERC721 implmentation. 
 /// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)

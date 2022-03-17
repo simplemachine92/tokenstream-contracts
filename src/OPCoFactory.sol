@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.10;
 
-import "../lib/openzeppelin/contracts/access/AccessControl.sol";
-import "./Badge.sol";
+import "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
+// import "./Badge.sol";
 
 /**
 OPCoFactory is responsible for managing the OPCo's.

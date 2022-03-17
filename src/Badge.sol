@@ -2,17 +2,6 @@ pragma solidity ^0.8.10;
 
 import "./Soulbound.sol";
 import "./OPCoFactory.sol";
-import "../lib/openzeppelin/contracts/token/ERC721/ERC721.sol";
-import "../lib/openzeppelin/contracts/access/AccessControl.sol";
-import "../lib/openzeppelin/contracts/utils/Counters.sol";
-import "./../lib/forge-std/src/console.sol";
-
-import "../lib/openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
-import "../lib/openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-import "../lib/openzeppelin/contracts/finance/PaymentSplitter.sol";
-import "../lib/openzeppelin/contracts/access/Ownable.sol";
-import "../lib/openzeppelin/contracts/security/ReentrancyGuard.sol";
-
 
 contract Badge is Soulbound, OPCoFactory {
     
