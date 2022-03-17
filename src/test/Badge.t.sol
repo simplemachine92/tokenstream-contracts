@@ -5,14 +5,15 @@ import "./../../lib/ds-test/src/test.sol";
 import "./../OPCoFactory.sol";
 import "./../Badge.sol";
 import "./../../lib/forge-std/src/console.sol";
-import "./../../lib/openzeppelin/contracts/utils/cryptography/MerkleProof.sol";
+import "./../../lib/forge-std/src/Vm.sol";
 
 contract BadgeTest is OPCoFactory, DSTest {
   OPCoFactory internal factory;
-  Badge internal badge; 
-  address deployerAcct; 
+  Badge internal badge;
+  address deployerAcct;
   address testOPCoAcct;
   address[] internal testBadgeHolders;
+  Vm internal constant hevm = Vm(HEVM_ADDRESS);
 
   function setUp() public {
     testBadgeHolders = [
@@ -26,13 +27,14 @@ contract BadgeTest is OPCoFactory, DSTest {
     badge.setOPCo(testOPCoAcct, "xx", 10e2);
     badge.setOPCoBadgeHolders(testBadgeHolders);
     badge.mint(testBadgeHolders[0], 1);
-
   }
 
   function testMint() public {
-      badge.mint(testBadgeHolders[1], 1);
+    badge.mint(testBadgeHolders[1], 1);
   }
-  function testApprove() public { 
-    //   badge.approve(testBadgeHolders[1], 1);
+
+  function testInvalidRoleMint() public {
+    hevm.expectRevert(abi.encodeWithSignature("InvalidRole()"));
+    badge.mint(testOPCoAcct, 1);
   }
 }
