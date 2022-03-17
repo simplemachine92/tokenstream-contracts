@@ -3,6 +3,8 @@ pragma solidity ^0.8.10;
 
 import "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 
+error InvalidSoulboundRole();
+
 /// @notice A soulbound take on Rari-Capitals solmate ERC721 implmentation. 
 /// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
 /// @dev Note that balanceOf does not revert if passed the zero address, in defiance of the ERC.
@@ -66,7 +68,7 @@ abstract contract Soulbound is AccessControl {
     //////////////////////////////////////////////////////////////*/
 
   function approve(address spender, uint256 id) public virtual {
-    require(hasRole(ADMIN_ROLE, msg.sender), "INVALID ROLE");
+    if (!hasRole(ADMIN_ROLE, msg.sender)) revert InvalidSoulboundRole();
     address owner = ownerOf[id];
 
     require(
@@ -80,7 +82,7 @@ abstract contract Soulbound is AccessControl {
   }
 
   function setApprovalForAll(address operator, bool approved) public virtual {
-    require(hasRole(ADMIN_ROLE, msg.sender), "INVALID ROLE");
+    if (!hasRole(ADMIN_ROLE, msg.sender)) revert InvalidSoulboundRole();
 
     isApprovedForAll[msg.sender][operator] = approved;
 
@@ -93,7 +95,7 @@ abstract contract Soulbound is AccessControl {
     uint256 id
   ) public virtual {
 
-    require(hasRole(ADMIN_ROLE, from), "INVALID ROLE");
+    if (!hasRole(ADMIN_ROLE, msg.sender)) revert InvalidSoulboundRole();
 
     require(from == ownerOf[id], "WRONG_FROM");
 

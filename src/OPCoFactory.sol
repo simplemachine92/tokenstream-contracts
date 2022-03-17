@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: UNLICENSED
+// SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.10;
 
 import "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
@@ -33,12 +33,12 @@ contract OPCoFactory is AccessControl {
   mapping(address => bool) public isOPCo;
   mapping(address => bool) isBadgeHolder;
 
-  address[] public OPCoAccounts;
+  address[] public allOPCoAccounts;
   address[] public OPCoBadgeHolders;
 
   // Set an OPCo
   function setOPCo(
-    address _opCoAccount,
+    address[] memory _opCoAccounts,
     string memory _opCoId,
     uint256 _badgeSupply
   ) public returns (bool) {
@@ -46,10 +46,13 @@ contract OPCoFactory is AccessControl {
     OPCo memory newOPCo;
     newOPCo.id = keccak256(abi.encodePacked(_opCoId));
     newOPCo.amount = _badgeSupply;
-    OPCos[_opCoAccount] = newOPCo;
-    OPCoAccounts.push(_opCoAccount);
-    _setupRole(OPCO_ROLE, _opCoAccount);
-    isOPCo[_opCoAccount] = true;
+    for (uint256 i = 0; i < _opCoAccounts.length; ++i) {
+      OPCos[_opCoAccounts[i]] = newOPCo;
+      allOPCoAccounts.push(_opCoAccounts[i]);
+      _setupRole(OPCO_ROLE, _opCoAccounts[i]);
+      isOPCo[_opCoAccounts[i]] = true;
+    }
+
     return true;
   }
 

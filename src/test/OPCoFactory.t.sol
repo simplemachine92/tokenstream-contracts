@@ -9,7 +9,7 @@ import "./../../lib/forge-std/src/Vm.sol";
 contract OPCoFactoryTest is DSTest {
   OPCoFactory internal factory;
   address deployerAcct;
-  address testOPCoAcct;
+  address[] testOPCoAcct;
   address invalidAccount;
   address[] internal testBadgeHolders;
   Vm internal constant hevm = Vm(HEVM_ADDRESS);
@@ -21,7 +21,7 @@ contract OPCoFactoryTest is DSTest {
       0x0000008735754EDa8dB6B50aEb93463045fc5c55,
       0xc2102c929CF30A91A6244Dc8B21F048468DEC56A
     ];
-    testOPCoAcct = 0x802999C71263f7B30927F720CF0AC10A76a0494C;
+    testOPCoAcct = [0x802999C71263f7B30927F720CF0AC10A76a0494C];
     invalidAccount = 0xFe59E676BaB8698c70F01023747f2E27e8A065B9;
   }
 

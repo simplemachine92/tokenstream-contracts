@@ -11,7 +11,8 @@ contract BadgeTest is OPCoFactory, DSTest {
   OPCoFactory internal factory;
   Badge internal badge;
   address deployerAcct;
-  address testOPCoAcct;
+  address[] testOPCoAcct;
+  address invalidAccount; 
   address[] internal testBadgeHolders;
   Vm internal constant hevm = Vm(HEVM_ADDRESS);
 
@@ -21,20 +22,20 @@ contract BadgeTest is OPCoFactory, DSTest {
       0x0000008735754EDa8dB6B50aEb93463045fc5c55,
       0xc2102c929CF30A91A6244Dc8B21F048468DEC56A
     ];
-    testOPCoAcct = 0x802999C71263f7B30927F720CF0AC10A76a0494C;
-    badge = new Badge(msg.sender, "example", "ex", "example.com");
+    testOPCoAcct = [0x802999C71263f7B30927F720CF0AC10A76a0494C];
+    invalidAccount = 0xFe59E676BaB8698c70F01023747f2E27e8A065B9;
 
+    badge = new Badge(msg.sender, "example", "ex", "example.com");
     badge.setOPCo(testOPCoAcct, "xx", 10e2);
     badge.setOPCoBadgeHolders(testBadgeHolders);
-    badge.mint(testBadgeHolders[0], 1);
   }
 
   function testMint() public {
-    badge.mint(testBadgeHolders[1], 1);
+    badge.mint(testBadgeHolders[1], 1, testOPCoAcct[0]);
   }
 
   function testInvalidRoleMint() public {
     hevm.expectRevert(abi.encodeWithSignature("InvalidRole()"));
-    badge.mint(testOPCoAcct, 1);
+    badge.mint(invalidAccount, 1, testOPCoAcct[0]);
   }
 }
