@@ -5,7 +5,7 @@ import "../lib/openzeppelin-contracts/contracts/access/AccessControl.sol";
 
 error InvalidSoulboundRole();
 
-/// @notice A soulbound take on Rari-Capitals solmate ERC721 implmentation. 
+/// @notice A soulbound take on Rari-Capitals solmate ERC721 implmentation.
 /// @author Solmate (https://github.com/Rari-Capital/solmate/blob/main/src/tokens/ERC721.sol)
 /// @dev Note that balanceOf does not revert if passed the zero address, in defiance of the ERC.
 abstract contract Soulbound is AccessControl {
@@ -34,7 +34,7 @@ abstract contract Soulbound is AccessControl {
   string public name;
 
   string public symbol;
-  
+
   bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
   function tokenURI(uint256 id) public view virtual returns (string memory);
@@ -51,13 +51,15 @@ abstract contract Soulbound is AccessControl {
 
   mapping(address => mapping(address => bool)) public isApprovedForAll;
 
-
-
   /*///////////////////////////////////////////////////////////////
                               CONSTRUCTOR
     //////////////////////////////////////////////////////////////*/
 
-  constructor(address _admin, string memory _name, string memory _symbol) {
+  constructor(
+    address _admin,
+    string memory _name,
+    string memory _symbol
+  ) {
     name = _name;
     symbol = _symbol;
     _setupRole(ADMIN_ROLE, _admin);
@@ -94,7 +96,6 @@ abstract contract Soulbound is AccessControl {
     address to,
     uint256 id
   ) public virtual {
-
     if (!hasRole(ADMIN_ROLE, msg.sender)) revert InvalidSoulboundRole();
 
     require(from == ownerOf[id], "WRONG_FROM");
@@ -176,7 +177,6 @@ abstract contract Soulbound is AccessControl {
     //////////////////////////////////////////////////////////////*/
 
   function _mint(address to, uint256 id) internal virtual {
-
     require(to != address(0), "INVALID_RECIPIENT");
 
     require(ownerOf[id] == address(0), "ALREADY_MINTED");
@@ -192,7 +192,6 @@ abstract contract Soulbound is AccessControl {
   }
 
   function _burn(uint256 id) internal virtual {
-
     address owner = ownerOf[id];
 
     require(ownerOf[id] != address(0), "NOT_MINTED");

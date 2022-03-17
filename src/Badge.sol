@@ -11,7 +11,6 @@ error DoesNotExist();
 error NoBadgesLeft();
 
 contract Badge is Soulbound, OPCoFactory {
-
   uint256 public totalSupply;
 
   string public baseURI;
@@ -35,7 +34,11 @@ contract Badge is Soulbound, OPCoFactory {
     SafeTransferLib.safeTransferETH(msg.sender, address(this).balance);
   }
 
-  function mint(address _to, uint16 _amount, address _opCo) external {
+  function mint(
+    address _to,
+    uint16 _amount,
+    address _opCo
+  ) external {
     if (!hasRole(BADGE_HOLDER_ROLE, _to)) revert InvalidRole();
     // if (!isBadgeHolder[_to]) revert InvalidHolder();
     if (totalSupply + _amount >= OPCos[_opCo].amount) revert NoBadgesLeft();

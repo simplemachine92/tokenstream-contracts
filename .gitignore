@@ -1,4 +1,6 @@
-
 /out/
-
 /cache/
+/node_modules/
+package.json
+pack-lock.json
+*/.DS_Store
