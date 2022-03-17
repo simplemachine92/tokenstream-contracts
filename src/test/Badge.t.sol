@@ -13,8 +13,10 @@ contract BadgeTest is OPCoFactory, DSTest {
   address deployerAcct;
   address[] testOPCoAcct;
   address invalidAccount;
+  address externalAccount; 
   address externalContract;
   address[] internal testBadgeHolders;
+  uint256 testBadgeId = 101;
   Vm internal constant hevm = Vm(HEVM_ADDRESS);
 
   function setUp() public {
@@ -26,6 +28,7 @@ contract BadgeTest is OPCoFactory, DSTest {
     testOPCoAcct = [0x802999C71263f7B30927F720CF0AC10A76a0494C];
     invalidAccount = 0xFe59E676BaB8698c70F01023747f2E27e8A065B9;
 
+	externalAccount = 0x6b541b78349097714B9D1aB6A788dB5e0dCF21a3;
     externalContract = 0xDe30da39c46104798bB5aA3fe8B9e0e1F348163F;
 
     badge = new Badge(HEVM_ADDRESS, "example", "ex", "example.com");
@@ -51,9 +54,20 @@ contract BadgeTest is OPCoFactory, DSTest {
     hevm.expectRevert(abi.encodeWithSignature("InvalidSoulboundRole()"));
     badge.setApprovalForAll(externalContract, true);
   }
+  
+  function testBadgeApprove() public {
+	hevm.prank(HEVM_ADDRESS);
+    badge.approve(externalContract, 1);
+  }
 
   function testBadgeApprove_Revert() public {
     hevm.expectRevert(abi.encodeWithSignature("InvalidSoulboundRole()"));
     badge.approve(externalContract, 1);
+  }
+
+  function testBadgeTransfer() public {
+	  badge.mint(testBadgeHolders[0], 1, testOPCoAcct[0]);
+	  hevm.prank(HEVM_ADDRESS); 
+	  badge.transferFrom(testBadgeHolders[0], externalAccount, 0);
   }
 }
