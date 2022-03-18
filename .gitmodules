@@ -10,3 +10,6 @@
 [submodule "lib/solmate"]
 	path = lib/solmate
 	url = https://github.com/Rari-capital/solmate
+[submodule "lib/merkle-tree-solidity"]
+	path = lib/merkle-tree-solidity
+	url = https://github.com/jameswenzel/merkle-tree-solidity
