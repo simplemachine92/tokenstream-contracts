@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.10;
 
-import "./Soulbound.sol";
+//import "./Soulbound.sol";
 import "./OPCoFactory.sol";
 import "./../lib/solmate/src/utils/SafeTransferLib.sol";
+import "./../lib/solmate/src/tokens/ERC721.sol";
 
 error InvalidHolder();
 error NotOwner();
 error DoesNotExist();
 error NoBadgesLeft();
+error InvalidTransfer();
 
-contract Badge is Soulbound, OPCoFactory {
+contract Badge is ERC721, OPCoFactory {
   uint256 public totalSupply;
 
   string public baseURI;
@@ -23,7 +25,7 @@ contract Badge is Soulbound, OPCoFactory {
     string memory name,
     string memory symbol,
     string memory _baseURI
-  ) payable Soulbound(admin, name, symbol) {
+  ) payable ERC721(name, symbol) {
     baseURI = _baseURI;
     factory = new OPCoFactory();
     owner = msg.sender;
@@ -55,10 +57,18 @@ contract Badge is Soulbound, OPCoFactory {
     return string(abi.encodePacked(baseURI, id));
   }
 
+  function transferFrom(
+    address,
+    address,
+    uint256
+  ) public override {
+    revert InvalidTransfer();
+  }
+
   function supportsInterface(bytes4 interfaceId)
     public
     pure
-    override(Soulbound, AccessControl)
+    override(ERC721, AccessControl)
     returns (bool)
   {
     return
