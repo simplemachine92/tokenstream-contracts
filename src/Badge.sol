@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.10;
 
-//import "./Soulbound.sol";
 import "./OPCoFactory.sol";
 import "./../lib/solmate/src/utils/SafeTransferLib.sol";
 import "./../lib/solmate/src/tokens/ERC721.sol";
@@ -18,7 +17,6 @@ contract Badge is ERC721, OPCoFactory {
   string public baseURI;
   address public owner;
 
-  OPCoFactory factory;
 
   constructor(
     address admin,
@@ -27,7 +25,6 @@ contract Badge is ERC721, OPCoFactory {
     string memory _baseURI
   ) payable ERC721(name, symbol) {
     baseURI = _baseURI;
-    factory = new OPCoFactory();
     owner = msg.sender;
   }
 
@@ -52,11 +49,20 @@ contract Badge is ERC721, OPCoFactory {
     }
   }
 
+  function burn(uint256 id) external {
+    if (!hasRole(BADGE_HOLDER_ROLE, msg.sender)) revert InvalidRole();
+    if (ownerOf[id] != msg.sender) revert InvalidHolder();
+    unchecked {
+      _burn(id);
+    }
+  }
+
   function tokenURI(uint256 id) public view override returns (string memory) {
     if (msg.sender == address(0)) revert DoesNotExist();
     return string(abi.encodePacked(baseURI, id));
   }
 
+  // Make it souldbound
   function transferFrom(
     address,
     address,

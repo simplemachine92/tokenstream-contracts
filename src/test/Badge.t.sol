@@ -50,4 +50,16 @@ contract BadgeTest is OPCoFactory, DSTest {
     hevm.expectRevert(abi.encodeWithSignature("InvalidTransfer()"));
     badge.transferFrom(testBadgeHolders[0], externalAccount, 0);
   }
+
+  function testBadgeBurn() public {
+	  badge.mint(testBadgeHolders[1], 1, testOPCoAcct[0]);
+	  hevm.prank(testBadgeHolders[1]);
+	  badge.burn(0);
+  }
+  function testInvalidBadgeBurn() public {
+	  badge.mint(testBadgeHolders[1], 1, testOPCoAcct[0]);
+    hevm.expectRevert(abi.encodeWithSignature("InvalidHolder()"));
+	  hevm.prank(testBadgeHolders[1]);
+	  badge.burn(1);
+  }
 }
