@@ -1,25 +1,27 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 pragma solidity ^0.8.10;
 
-import "./OPCoFactory.sol";
 import "./../lib/solmate/src/utils/SafeTransferLib.sol";
 import "./../lib/solmate/src/tokens/ERC721.sol";
 import "./../lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 
-error InvalidHolder();
+error InvalidMinter();
 error NotOwner();
 error DoesNotExist();
 error NoBadgesLeft();
 error InvalidTransfer();
 error AlreadyClaimed();
+error NotOpCo();
 
-contract Badge is ERC721, OpCoFactory {
+contract Badge is ERC721 {
   uint256 public totalSupply;
 
   string public baseURI;
   address public owner;
 
-  mapping(address => bool) claimed; 
+  bytes32 public opCoRoot;
+  mapping(address => bytes32) public opCoMinterRoots;
+  mapping(address => bool) public claimed; 
 
   constructor(
     address admin,
@@ -31,6 +33,19 @@ contract Badge is ERC721, OpCoFactory {
     owner = msg.sender;
   }
 
+  function _leaf(address _adr) internal pure returns(bytes32) {
+    return keccak256(abi.encodePacked(_adr));
+  }
+
+  function updateOpCoRoot(bytes32 _opCoRoot) public {
+    opCoRoot = _opCoRoot;
+  }
+
+  function updateMinterRoot(bytes32 _root, bytes32[] memory _opCoProof) public {
+    if (!MerkleProof.verify(_opCoProof, opCoRoot, _leaf(msg.sender))) revert NotOpCo();
+    opCoMinterRoots[msg.sender] = _root; 
+  }
+
   function withdraw() external {
     if (msg.sender != owner) revert NotOwner();
     SafeTransferLib.safeTransferETH(msg.sender, address(this).balance);
@@ -38,11 +53,11 @@ contract Badge is ERC721, OpCoFactory {
 
   function mint(
     address _to,
-    bytes32 _root, 
+    address _opCo, 
     bytes32[] calldata _proof
-  ) external {
+  ) payable external {
     if (claimed[_to]) revert AlreadyClaimed(); 
-    if (!MerkleProof.verify(_proof, _root, keccak256(abi.encodePacked(_to)))) revert InvalidHolder();
+    if (!MerkleProof.verify(_proof, opCoMinterRoots[_opCo], _leaf(_to))) revert InvalidMinter();
     unchecked {
         _mint(_to, totalSupply++);
         claimed[_to] = true; 
@@ -72,7 +87,7 @@ contract Badge is ERC721, OpCoFactory {
   function supportsInterface(bytes4 interfaceId)
     public
     pure
-    override(ERC721, AccessControl)
+    override(ERC721)
     returns (bool)
   {
     return
