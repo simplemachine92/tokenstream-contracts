@@ -22,9 +22,9 @@ error InvalidBurn();
 contract Badge is ERC721, Ownable, AccessControl {
   bytes32 public constant OP_ROLE = keccak256("OP_ROLE");
 
+  bytes32 public opCoRoot;
   uint256 public totalSupply;
   string public baseURI;
-  bytes32 public opCoRoot;
 
   mapping(address => bytes32) public opCoMinterRoots;
 
@@ -111,7 +111,7 @@ contract Badge is ERC721, Ownable, AccessControl {
     return MerkleProof.verify(_proof, _root, _node);
   }
 
-  // Make it ~*~ Souldbound ~*~
+  // Make it ~*~ Soulbound ~*~
   function transferFrom(
     address,
     address,
