@@ -6,42 +6,37 @@ import "./../OPCoFactory.sol";
 import "./../../lib/forge-std/src/Vm.sol";
 import "./../../lib/forge-std/src/Vm.sol";
 
-contract OPCoFactoryTest is DSTest {
-  OPCoFactory internal factory;
-  address deployerAcct;
-  address[] testOPCoAcct;
+contract OpCoFactoryTest is DSTest {
+  OpCoFactory internal factory;
+  address testAdr1;
+  bytes32 testRoot1; 
   address invalidAccount;
-  address[] internal testBadgeHolders;
   Vm internal constant hevm = Vm(HEVM_ADDRESS);
 
   function setUp() public {
-    factory = new OPCoFactory();
-    testBadgeHolders = [
-      0x02Bb75dD262A7C1d9682c77fff54643a595176E5,
-      0x0000008735754EDa8dB6B50aEb93463045fc5c55,
-      0xc2102c929CF30A91A6244Dc8B21F048468DEC56A
-    ];
-    testOPCoAcct = [0x802999C71263f7B30927F720CF0AC10A76a0494C];
-    invalidAccount = 0xFe59E676BaB8698c70F01023747f2E27e8A065B9;
+    factory = new OpCoFactory();
+
+    testAdr1 = 0x802999C71263f7B30927F720CF0AC10A76a0494C;
+    testRoot1 = 0x5b0ec3549017db66eb94fc10219382abaf1ba8ca50a2c33931589d67a22e9103;
   }
 
   function testSetOpCo() public {
-    factory.setOPCo(testOPCoAcct, "xx", 10e2);
+    factory.newOpCo(testAdr1);
   }
 
   function testSetOPCo_InvalidRole() public {
-    hevm.expectRevert(abi.encodeWithSignature("InvalidRole()"));
-    hevm.prank(invalidAccount);
-    factory.setOPCo(testOPCoAcct, "xx", 10e2);
+    // hevm.expectRevert(abi.encodeWithSignature("InvalidRole()"));
+    // hevm.prank(invalidAccount);
+    // factory.setOPCo(testOPCoAcct, "xx", 10e2);
   }
 
-  function testSetOPCoBadgeHolders() public {
-    factory.setOPCoBadgeHolders(testBadgeHolders);
+  function testSetOpCoBadgeHolders() public {
+    factory.setOpCoBadgeMinters(testAdr1, testRoot1);
   }
 
   function testSetOPCoBadgeHolders_InvalidRole() public {
-    hevm.expectRevert(abi.encodeWithSignature("InvalidRole()"));
-    hevm.prank(invalidAccount);
-    factory.setOPCoBadgeHolders(testBadgeHolders);
+    // hevm.expectRevert(abi.encodeWithSignature("InvalidRole()"));
+    // hevm.prank(invalidAccount);
+    // factory.setOPCoBadgeHolders(testBadgeHolders);
   }
 }

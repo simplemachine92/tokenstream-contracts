@@ -4,19 +4,22 @@ pragma solidity ^0.8.10;
 import "./OPCoFactory.sol";
 import "./../lib/solmate/src/utils/SafeTransferLib.sol";
 import "./../lib/solmate/src/tokens/ERC721.sol";
+import "./../lib/openzeppelin-contracts/contracts/utils/cryptography/MerkleProof.sol";
 
 error InvalidHolder();
 error NotOwner();
 error DoesNotExist();
 error NoBadgesLeft();
 error InvalidTransfer();
+error AlreadyClaimed();
 
-contract Badge is ERC721, OPCoFactory {
+contract Badge is ERC721, OpCoFactory {
   uint256 public totalSupply;
 
   string public baseURI;
   address public owner;
 
+  mapping(address => bool) claimed; 
 
   constructor(
     address admin,
@@ -35,23 +38,18 @@ contract Badge is ERC721, OPCoFactory {
 
   function mint(
     address _to,
-    uint16 _amount,
-    address _opCo
+    bytes32 _root, 
+    bytes32[] calldata _proof
   ) external {
-    if (!hasRole(BADGE_HOLDER_ROLE, _to)) revert InvalidRole();
-    // if (!isBadgeHolder[_to]) revert InvalidHolder();
-    if (totalSupply + _amount >= OPCos[_opCo].amount) revert NoBadgesLeft();
-
+    if (claimed[_to]) revert AlreadyClaimed(); 
+    if (!MerkleProof.verify(_proof, _root, keccak256(abi.encodePacked(_to)))) revert InvalidHolder();
     unchecked {
-      for (uint16 index = 0; index < _amount; index++) {
         _mint(_to, totalSupply++);
-      }
+        claimed[_to] = true; 
     }
   }
 
   function burn(uint256 id) external {
-    if (!hasRole(BADGE_HOLDER_ROLE, msg.sender)) revert InvalidRole();
-    if (ownerOf[id] != msg.sender) revert InvalidHolder();
     unchecked {
       _burn(id);
     }
