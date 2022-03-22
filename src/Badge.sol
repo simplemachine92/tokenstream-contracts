@@ -21,7 +21,6 @@ error InvalidBurn();
 
 contract Badge is ERC721, Ownable, AccessControl {
   bytes32 public constant OP_ROLE = keccak256("OP_ROLE");
-  bytes32 public constant OPCO_ROLE = keccak256("OPCO_ROLE");
 
   uint256 public totalSupply;
   string public baseURI;
