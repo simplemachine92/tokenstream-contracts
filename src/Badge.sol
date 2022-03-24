@@ -20,23 +20,34 @@ error InvalidDelegation();
 error InvalidBurn();
 error InvalidSupply();
 
+/// @notice A minimalist soulbound ERC-721 implementaion with hierarchical
+///         whitelisting and token delegation.
+/// @author MOONSHOT COLLECTIVE (https://github.com/moonshotcollective)
 contract Badge is ERC721, Ownable, AccessControl {
   event UpdatedOpCoRoot(bytes32 _opCoRoot, address[] _opCoAdresses);
   event UpdatedOpCoMinterRoot(bytes32 _minterRoot, address[] _minterAdresses);
   event Minted(address _to, address _opCo);
 
+  /*///////////////////////////////////////////////////////////////
+                                STORAGE
+    //////////////////////////////////////////////////////////////*/
+
   bytes32 public constant OP_ROLE = keccak256("OP_ROLE");
 
-  bytes32 public opCoRoot;
+  bytes32 internal opCoRoot;
   uint256 public totalSupply;
   string public baseURI;
 
-  mapping(address => bytes32) public opCoMinterRoots;
+  mapping(address => bytes32) internal opCoMinterRoots;
   mapping(address => uint256) public opCoSupply;
 
   mapping(address => uint256) public delegates;
   mapping(address => bool) public delegated;
   mapping(address => address) public delegatedTo;
+
+  /*///////////////////////////////////////////////////////////////
+                              CONSTRUCTOR
+    //////////////////////////////////////////////////////////////*/
 
   constructor(
     address _op,
@@ -48,6 +59,15 @@ contract Badge is ERC721, Ownable, AccessControl {
     _setupRole(OP_ROLE, _op);
   }
 
+  /*///////////////////////////////////////////////////////////////
+                                OP  LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+  /// @notice Update the OPCo Merkle Root
+  /// @dev Updates the OPCo merkle root for OPCo whitelisting.
+  /// @param _opCoRoot A merkle root of the OPCo address tree.
+  /// @param _opCoAddresses The array of addresses hashed in the merkle tree.
+  /// @param _opCoSupply The array of max supply each OPCo address is allowed.
   function updateOpCoRoot(
     bytes32 _opCoRoot,
     address[] memory _opCoAddresses,
@@ -56,26 +76,41 @@ contract Badge is ERC721, Ownable, AccessControl {
     if (!hasRole(OP_ROLE, msg.sender)) revert NotOp();
     emit UpdatedOpCoRoot(_opCoRoot, _opCoAddresses);
     opCoRoot = _opCoRoot;
-    for (uint i = 0; i < _opCoAddresses.length; ++i) {
+    for (uint256 i = 0; i < _opCoAddresses.length; ++i) {
       opCoSupply[_opCoAddresses[i]] = _opCoSupply[i];
     }
   }
 
+  /*///////////////////////////////////////////////////////////////
+                              OPCO  LOGIC
+    //////////////////////////////////////////////////////////////*/
+
+  /// @notice Update the OPCo Minters Merkle Root
+  /// @dev Updates the OPCo minters merkle root for mint whitelisting.
+  /// @param _minterRoot A merkle root of the OPCo's minters tree.
+  /// @param _opCoProof A merkle proof of the OPCo's validity.
+  /// @param _minterAddresses The array of addresses hashed in the minters tree.
   function updateMinterRoot(
-    bytes32 _root,
+    bytes32 _minterRoot,
     bytes32[] memory _opCoProof,
     address[] memory _minterAddresses
   ) public {
     if (!_verify(_opCoProof, opCoRoot, _leaf(msg.sender))) revert NotOpCo();
-    if (_minterAddresses.length > opCoSupply[msg.sender]) revert InvalidSupply();
-    emit UpdatedOpCoMinterRoot(_root, _minterAddresses);
-    opCoMinterRoots[msg.sender] = _root;
+    if (_minterAddresses.length > opCoSupply[msg.sender])
+      revert InvalidSupply();
+    emit UpdatedOpCoMinterRoot(_minterRoot, _minterAddresses);
+    opCoMinterRoots[msg.sender] = _minterRoot;
   }
 
-  function withdraw() external onlyOwner {
-    SafeTransferLib.safeTransferETH(msg.sender, address(this).balance);
-  }
+  /*///////////////////////////////////////////////////////////////
+                              BADGE LOGIC
+    //////////////////////////////////////////////////////////////*/
 
+  /// @notice Mint
+  /// @dev Mints the soulbound ERC721 token.
+  /// @param _to The address to mint the token to.
+  /// @param _opCo The associated OPCo of the _to address.
+  /// @param _proof The merkle proof associated with the minters validity.
   function mint(
     address _to,
     address _opCo,
@@ -85,13 +120,17 @@ contract Badge is ERC721, Ownable, AccessControl {
     if (balanceOf[_to] > 0) revert AlreadyClaimed();
     if (!_verify(_proof, opCoMinterRoots[_opCo], _leaf(_to)))
       revert InvalidMinter();
-	emit Minted(_to, _opCo);
+    emit Minted(_to, _opCo);
     unchecked {
       opCoSupply[_opCo]--;
       _mint(_to, totalSupply++);
     }
   }
 
+  /// @notice Burn
+  /// @dev Burns the soulbound ERC721.
+  /// @param _id The token URI.
+  /// @param _opCo The OPCo associated with the token burner.
   function burn(uint256 _id, address _opCo) external {
     if (balanceOf[msg.sender] != 1 || ownerOf[_id] != msg.sender)
       revert InvalidBurn();
@@ -101,6 +140,9 @@ contract Badge is ERC721, Ownable, AccessControl {
     }
   }
 
+  /// @notice Delegate the token
+  /// @dev Delegate a singular token (without transfer) to another holder.
+  /// @param _to The address the sender is delegating to.
   function delegate(address _to) external {
     if (
       balanceOf[msg.sender] != 1 || delegated[msg.sender] || balanceOf[_to] == 0
@@ -112,6 +154,9 @@ contract Badge is ERC721, Ownable, AccessControl {
     }
   }
 
+  /// @notice Un-Delegate the token
+  /// @dev Un-Delegate a singular token (without transfer) from an address.
+  /// @param _from The address the sender is un-delegating from.
   function undelegate(address _from) external {
     if (!delegated[msg.sender] || delegatedTo[msg.sender] != _from)
       revert InvalidDelegation();
@@ -122,10 +167,17 @@ contract Badge is ERC721, Ownable, AccessControl {
     }
   }
 
+  /// @notice Token URI
+  /// @dev Generate a token URI.
+  /// @param _id The token URI.
   function tokenURI(uint256 _id) public view override returns (string memory) {
     if (msg.sender == address(0)) revert DoesNotExist();
     return string(abi.encodePacked(baseURI, _id));
   }
+
+  /*///////////////////////////////////////////////////////////////
+                          INTERNAL LOGIC
+    //////////////////////////////////////////////////////////////*/
 
   function _leaf(address _adr) internal pure returns (bytes32) {
     return keccak256(abi.encodePacked(_adr));
@@ -146,6 +198,10 @@ contract Badge is ERC721, Ownable, AccessControl {
     uint256
   ) public pure override {
     revert Soulbound();
+  }
+
+  function withdraw() external onlyOwner {
+    SafeTransferLib.safeTransferETH(msg.sender, address(this).balance);
   }
 
   function supportsInterface(bytes4 _interfaceId)
