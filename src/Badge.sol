@@ -18,10 +18,12 @@ error AlreadyDelegated();
 error NotDelegated();
 error InvalidDelegation();
 error InvalidBurn();
+error InvalidSupply();
 
 contract Badge is ERC721, Ownable, AccessControl {
   event UpdatedOpCoRoot(bytes32 _opCoRoot, address[] _opCoAdresses);
   event UpdatedOpCoMinterRoot(bytes32 _minterRoot, address[] _minterAdresses);
+  event Minted(address _to, address _opCo);
 
   bytes32 public constant OP_ROLE = keccak256("OP_ROLE");
 
@@ -30,6 +32,7 @@ contract Badge is ERC721, Ownable, AccessControl {
   string public baseURI;
 
   mapping(address => bytes32) public opCoMinterRoots;
+  mapping(address => uint256) public opCoSupply;
 
   mapping(address => uint256) public delegates;
   mapping(address => bool) public delegated;
@@ -45,12 +48,17 @@ contract Badge is ERC721, Ownable, AccessControl {
     _setupRole(OP_ROLE, _op);
   }
 
-  function updateOpCoRoot(bytes32 _opCoRoot, address[] memory _opCoAddresses)
-    public
-  {
+  function updateOpCoRoot(
+    bytes32 _opCoRoot,
+    address[] memory _opCoAddresses,
+    uint256[] memory _opCoSupply
+  ) public {
     if (!hasRole(OP_ROLE, msg.sender)) revert NotOp();
     emit UpdatedOpCoRoot(_opCoRoot, _opCoAddresses);
     opCoRoot = _opCoRoot;
+    for (uint i = 0; i < _opCoAddresses.length; ++i) {
+      opCoSupply[_opCoAddresses[i]] = _opCoSupply[i];
+    }
   }
 
   function updateMinterRoot(
@@ -59,6 +67,7 @@ contract Badge is ERC721, Ownable, AccessControl {
     address[] memory _minterAddresses
   ) public {
     if (!_verify(_opCoProof, opCoRoot, _leaf(msg.sender))) revert NotOpCo();
+    if (_minterAddresses.length > opCoSupply[msg.sender]) revert InvalidSupply();
     emit UpdatedOpCoMinterRoot(_root, _minterAddresses);
     opCoMinterRoots[msg.sender] = _root;
   }
@@ -76,15 +85,18 @@ contract Badge is ERC721, Ownable, AccessControl {
     if (balanceOf[_to] > 0) revert AlreadyClaimed();
     if (!_verify(_proof, opCoMinterRoots[_opCo], _leaf(_to)))
       revert InvalidMinter();
+	emit Minted(_to, _opCo);
     unchecked {
+      opCoSupply[_opCo]--;
       _mint(_to, totalSupply++);
     }
   }
 
-  function burn(uint256 _id) external {
+  function burn(uint256 _id, address _opCo) external {
     if (balanceOf[msg.sender] != 1 || ownerOf[_id] != msg.sender)
       revert InvalidBurn();
     unchecked {
+      opCoSupply[_opCo]++;
       _burn(_id);
     }
   }
@@ -93,17 +105,21 @@ contract Badge is ERC721, Ownable, AccessControl {
     if (
       balanceOf[msg.sender] != 1 || delegated[msg.sender] || balanceOf[_to] == 0
     ) revert InvalidDelegation();
-    delegates[_to] = delegates[_to] + 1;
     delegatedTo[msg.sender] = _to;
     delegated[msg.sender] = true;
+    unchecked {
+      delegates[_to]++;
+    }
   }
 
   function undelegate(address _from) external {
     if (!delegated[msg.sender] || delegatedTo[msg.sender] != _from)
       revert InvalidDelegation();
-    delegates[_from] = delegates[_from] - 1;
     delegatedTo[msg.sender] = address(0);
     delegated[msg.sender] = false;
+    unchecked {
+      delegates[_from]--;
+    }
   }
 
   function tokenURI(uint256 _id) public view override returns (string memory) {

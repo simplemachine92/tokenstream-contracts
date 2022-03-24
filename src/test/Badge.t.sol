@@ -26,6 +26,9 @@ contract BadgeTest is DSTest {
   bytes32[] testOpCoProof;
 
   address[] testAdrArr;
+  uint256[] testOpCoSupply;
+
+  uint256[] testFailSupply;
 
   Vm internal constant hevm = Vm(HEVM_ADDRESS);
 
@@ -67,31 +70,32 @@ contract BadgeTest is DSTest {
 
     testBadAdr = 0x0984278a1099bdB47B39FD6B0Ac8Aa83b3000000;
 	
-	testAdrArr = [testAdr1, testAdr2, testBadAdr];
+	testAdrArr = [testOpCoAdr, testAdr1, testAdr2, testBadAdr];
+	testOpCoSupply = [8008, 100, 69, 420];
 
   }
 
   function testUpdateOpCoRoot() public {
     hevm.prank(opAdr);
-    badge.updateOpCoRoot(testOpCoRoot, testAdrArr);
+    badge.updateOpCoRoot(testOpCoRoot, testAdrArr, testOpCoSupply);
   }
 
   function testInvalidUpdateOpCoRoot() public {
     hevm.expectRevert(abi.encodeWithSignature("NotOp()"));
     hevm.prank(0xffffff308539Da3d54F90676b52568515Ed43F39);
-    badge.updateOpCoRoot(testOpCoRoot, testAdrArr);
+    badge.updateOpCoRoot(testOpCoRoot, testAdrArr, testOpCoSupply);
   }
 
   function testUpdateMinterRoot() public {
     hevm.prank(opAdr);
-    badge.updateOpCoRoot(testOpCoRoot, testAdrArr);
+    badge.updateOpCoRoot(testOpCoRoot, testAdrArr, testOpCoSupply);
     hevm.prank(testOpCoAdr);
     badge.updateMinterRoot(testRoot1, testOpCoProof, testAdrArr);
   }
 
   function _setupRoots() public {
     hevm.prank(opAdr);
-    badge.updateOpCoRoot(testOpCoRoot, testAdrArr);
+    badge.updateOpCoRoot(testOpCoRoot, testAdrArr, testOpCoSupply);
     hevm.prank(testOpCoAdr);
     badge.updateMinterRoot(testRoot1, testOpCoProof, testAdrArr);
   }
@@ -138,7 +142,7 @@ contract BadgeTest is DSTest {
 
     badge.mint(testAdr1, testOpCoAdr, testProof1);
     hevm.prank(testAdr1);
-    badge.burn(0);
+    badge.burn(0, testOpCoAdr);
   }
 
   function testInvalidBurn() public {
@@ -147,7 +151,7 @@ contract BadgeTest is DSTest {
     badge.mint(testAdr1, testOpCoAdr, testProof1);
     hevm.expectRevert(abi.encodeWithSignature("InvalidBurn()"));
     hevm.prank(testAdr1);
-    badge.burn(1);
+    badge.burn(1, testOpCoAdr);
   }
 
   function testDelegation() public {
