@@ -20,6 +20,9 @@ error InvalidDelegation();
 error InvalidBurn();
 
 contract Badge is ERC721, Ownable, AccessControl {
+  event UpdatedOpCoRoot(bytes32 _opCoRoot, address[] _opCoAdresses);
+  event UpdatedOpCoMinterRoot(bytes32 _minterRoot, address[] _minterAdresses);
+
   bytes32 public constant OP_ROLE = keccak256("OP_ROLE");
 
   bytes32 public opCoRoot;
@@ -42,13 +45,21 @@ contract Badge is ERC721, Ownable, AccessControl {
     _setupRole(OP_ROLE, _op);
   }
 
-  function updateOpCoRoot(bytes32 _opCoRoot) public {
+  function updateOpCoRoot(bytes32 _opCoRoot, address[] memory _opCoAddresses)
+    public
+  {
     if (!hasRole(OP_ROLE, msg.sender)) revert NotOp();
+    emit UpdatedOpCoRoot(_opCoRoot, _opCoAddresses);
     opCoRoot = _opCoRoot;
   }
 
-  function updateMinterRoot(bytes32 _root, bytes32[] memory _opCoProof) public {
+  function updateMinterRoot(
+    bytes32 _root,
+    bytes32[] memory _opCoProof,
+    address[] memory _minterAddresses
+  ) public {
     if (!_verify(_opCoProof, opCoRoot, _leaf(msg.sender))) revert NotOpCo();
+    emit UpdatedOpCoMinterRoot(_root, _minterAddresses);
     opCoMinterRoots[msg.sender] = _root;
   }
 
@@ -61,6 +72,7 @@ contract Badge is ERC721, Ownable, AccessControl {
     address _opCo,
     bytes32[] calldata _proof
   ) external payable {
+    if (_to == address(0)) revert DoesNotExist();
     if (balanceOf[_to] > 0) revert AlreadyClaimed();
     if (!_verify(_proof, opCoMinterRoots[_opCo], _leaf(_to)))
       revert InvalidMinter();

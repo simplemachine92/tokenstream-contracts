@@ -25,6 +25,8 @@ contract BadgeTest is DSTest {
   bytes32 testOpCoRoot;
   bytes32[] testOpCoProof;
 
+  address[] testAdrArr;
+
   Vm internal constant hevm = Vm(HEVM_ADDRESS);
 
   function setUp() public {
@@ -64,38 +66,41 @@ contract BadgeTest is DSTest {
     testAdr2 = 0x802999C71263f7B30927F720CF0AC10A76a0494C;
 
     testBadAdr = 0x0984278a1099bdB47B39FD6B0Ac8Aa83b3000000;
+	
+	testAdrArr = [testAdr1, testAdr2, testBadAdr];
+
   }
 
   function testUpdateOpCoRoot() public {
     hevm.prank(opAdr);
-    badge.updateOpCoRoot(testOpCoRoot);
+    badge.updateOpCoRoot(testOpCoRoot, testAdrArr);
   }
 
   function testInvalidUpdateOpCoRoot() public {
     hevm.expectRevert(abi.encodeWithSignature("NotOp()"));
     hevm.prank(0xffffff308539Da3d54F90676b52568515Ed43F39);
-    badge.updateOpCoRoot(testOpCoRoot);
+    badge.updateOpCoRoot(testOpCoRoot, testAdrArr);
   }
 
   function testUpdateMinterRoot() public {
     hevm.prank(opAdr);
-    badge.updateOpCoRoot(testOpCoRoot);
+    badge.updateOpCoRoot(testOpCoRoot, testAdrArr);
     hevm.prank(testOpCoAdr);
-    badge.updateMinterRoot(testRoot1, testOpCoProof);
+    badge.updateMinterRoot(testRoot1, testOpCoProof, testAdrArr);
   }
 
   function _setupRoots() public {
     hevm.prank(opAdr);
-    badge.updateOpCoRoot(testOpCoRoot);
+    badge.updateOpCoRoot(testOpCoRoot, testAdrArr);
     hevm.prank(testOpCoAdr);
-    badge.updateMinterRoot(testRoot1, testOpCoProof);
+    badge.updateMinterRoot(testRoot1, testOpCoProof, testAdrArr);
   }
 
   function testInvalidOpCoUpdateMinterRoot() public {
     _setupRoots();
 
     hevm.expectRevert(abi.encodeWithSignature("NotOpCo()"));
-    badge.updateMinterRoot(testRoot1, testOpCoProof);
+    badge.updateMinterRoot(testRoot1, testOpCoProof, testAdrArr);
   }
 
   function testMint() public {
