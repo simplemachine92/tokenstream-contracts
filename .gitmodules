@@ -13,3 +13,4 @@
 [submodule "lib/merkle-tree-solidity"]
 	path = lib/merkle-tree-solidity
 	url = https://github.com/jameswenzel/merkle-tree-solidity
+	ignore = dirty
