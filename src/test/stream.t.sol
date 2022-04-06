@@ -158,12 +158,17 @@ contract StreamTest is DSTest {
     bool[] _startsF = [true];
 
     address payable me = payable(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7);
+    
+    
 
     NotSimpleStream internal stream;
     GTC token;
     address deployer = HEVM_ADDRESS;
 
     Vm internal constant hevm = Vm(HEVM_ADDRESS);
+
+    /* uint256 balance = token.balanceOf(address(stream)); */
+    uint256 initAmount = 1000000000000000000000; // or 1000 tokens
 
     function setUp() public {
         cheats.warp(1641070800);
@@ -172,6 +177,7 @@ contract StreamTest is DSTest {
 
         token = new GTC(deployer);
         stream = new NotSimpleStream(
+            me,
             _addresses,
             _caps,
             _freqs,
@@ -182,15 +188,62 @@ contract StreamTest is DSTest {
         token.transfer(address(stream), 1000000000000000000000);
     }
 
-    // Will pass
-    function testStreamWithdraw() public {
-        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
-        stream.streamWithdraw(0.5 ether, me);
+    function testInitBalance() public {
+        assertEq(token.balanceOf(address(stream)), initAmount);
     }
 
+    /* // Will pass
+    function testStreamWithdraw() public {
+        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
+        stream.streamWithdraw(0.5 ether, "reason", me);
+        assertEq(token.balanceOf(address(stream)), (initAmount - 0.5 ether));
+    } */
+
+    // Will pass
+    /* function testStreamWithdraw2() public {
+         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
+        stream.streamWithdraw(0.5 ether, "reason", me);
+        
+        cheats.warp(1642366800);
+        stream.streamWithdraw(0.4 ether, "reason2", me);
+    } */
+
     // Will pass as 0x is not beneficiary
-    function testFailStreamWithdraw() public {
+    function testStreamWithdraw(uint256 amount) public {
+        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
+        cheats.assume(amount < 0.5 ether);
+        stream.streamWithdraw(0.5 ether, "reason", me);
+
+        /* try withdrawing again almost 2 weeks into the future,
+         with an amount up 0.499 eth */
+        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
+        cheats.warp(1642366800);
+        stream.streamWithdraw(0.5 ether, "reason", me);
+    }
+
+    function testFailWithdrawTooMuchTooSoon() public {
+        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
+        
+        stream.streamWithdraw(0.5 ether, "reason", me);
+
+        // try withdrawing again *almost* 2 weeks into the future (fails)
+        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
+        cheats.warp(1642366799);
+        stream.streamWithdraw(0.5 ether, "reason", me);
+    }
+
+    function testFailWithdrawTooMuch(uint256 amount) public {
+        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
+        cheats.assume(amount > 0.5 ether);
+        stream.streamWithdraw(amount, "reason", me);
+
+        /* // try withdrawing again
+        stream.streamWithdraw(0.5 ether, "reason", me); */
+    }
+
+     // Will pass as 0x is not beneficiary
+    function testFailStreamWithdraw2() public {
         hevm.prank(address(0));
-        stream.streamWithdraw(0.5 ether, me);
+        stream.streamWithdraw(0.5 ether, "reason", me);
     }
 }
