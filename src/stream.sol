@@ -28,39 +28,38 @@ contract MultiStream is Ownable, AccessControl {
     mapping(address => bool) disabled;
 
     string orgName;
-    string logoURI;
-    string orgDescription;
 
+    /// @dev track total payouts for UI
     uint public total_paid;
 
+    /// @dev So we can return user params for UI
     address[] public users;
 
     IERC20 public dToken;
 
     constructor(
         string memory _orgName,
-        string memory _logoURI,
-        string memory _orgDescription,
         address _owner,
-        address[] memory _managers,
         address[] memory _addresses,
         uint256[] memory _caps,
         uint256[] memory _frequency,
         bool[] memory _startsFull,
-        IERC20 _dToken
+        address _tokenAddress
     ) {
-
+        /* 
+        @ note Init Org Details
+        */
         orgName = _orgName;
-        logoURI = _logoURI;
-        orgDescription = _orgDescription;
 
+        /* 
+        @ note Init Roles
+        */
         transferOwnership(_owner);
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
-
-        for (uint256 i = 0; i < _managers.length; ++i) {
-            _setupRole(MANAGER_ROLE, _managers[i]);
-        }
-
+       
+        /* 
+        @ note Init Streams
+        */
         for (uint256 i = 0; i < _addresses.length; ++i) {
             caps[_addresses[i]] = _caps[i];
             frequencies[_addresses[i]] = _frequency[i];
@@ -71,8 +70,8 @@ contract MultiStream is Ownable, AccessControl {
             } else {
                 last[_addresses[i]] = block.timestamp;
             }
-            dToken = _dToken;
         }
+        dToken = IERC20(_tokenAddress);
     }
 
     function addManager(address _manager) public onlyRole(DEFAULT_ADMIN_ROLE) {
@@ -143,8 +142,8 @@ contract MultiStream is Ownable, AccessControl {
         disabled[_beneficiary] == false;
     }
 
-    /// @dev get the balance of a stream
-    /// @return the balance of the stream
+    /// @dev Get the balance of a stream by address
+    /// @return balance of the stream by address
     function streamBalance(address _beneficiary) public view returns (uint256) {
         if (block.timestamp - last[_beneficiary] > frequencies[_beneficiary]) {
             return caps[_beneficiary];
@@ -154,7 +153,7 @@ contract MultiStream is Ownable, AccessControl {
             frequencies[_beneficiary];
     }
 
-    /// @dev withdraw from a stream
+    /// @dev Withdraw from a stream
     /// @param amount amount of withdraw
     function streamWithdraw(
         uint256 amount,

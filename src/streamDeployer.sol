@@ -9,11 +9,8 @@ contract StreamDeployer is Ownable {
 
     /// @dev emitted when a new org is created.
     event OrganizationsDeployed(
-        address indexed tokenAddress,
-        address indexed ownerAddress,
-        string organizationName,
-        address _owner,
-        IERC20 _dToken
+        address indexed orgAddress,
+        address _tokenAddress
     );
 
     address[] public organizations;
@@ -25,37 +22,28 @@ contract StreamDeployer is Ownable {
     /// @dev deploys a stream factory contract for a specified organization.
     function deployOrganization(
         string calldata _orgName,
-        string calldata _logoURI,
-        string calldata _orgDescription,
         address _owner,
-        address[] calldata _managers,
         address[] calldata _addresses,
         uint256[] calldata _caps,
         uint256[] calldata _frequency,
         bool[] calldata _startsFull,
-        IERC20 _dToken
+        address _tokenAddress
     ) public {
         MultiStream deployedOrganization = new MultiStream(
             _orgName,
-            _logoURI,
-            _orgDescription,
             _owner,
-            _managers,
             _addresses,
             _caps,
             _frequency,
             _startsFull,
-            _dToken
+            _tokenAddress
         );
         
-        organizations.push(address(deployedOrganization));
+          organizations.push(address(deployedOrganization));
 
-        emit OrganizationsDeployed(
+         emit OrganizationsDeployed(
             address(deployedOrganization),
-            _msgSender(),
-            string(_orgName),
-            _owner,
-            _dToken
+            _tokenAddress
         );
 
     }

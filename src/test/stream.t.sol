@@ -184,15 +184,12 @@ contract StreamTest is DSTest {
         token = new GTC(deployer);
         stream = new MultiStream(
             _orgName,
-            _logoURI,
-            _orgDescription,
             me,
-            _managers,
             _addresses,
             _caps,
             _freqs,
             _startsF,
-            IERC20(token)
+            address(token)
         );
         cheats.prank((address(deployer)));
         token.transfer(address(stream), 1000000000000000000000);
@@ -201,22 +198,6 @@ contract StreamTest is DSTest {
     function testInitBalance() public {
         assertEq(token.balanceOf(address(stream)), initAmount);
     }
-
-    /* // Will pass
-    function testStreamWithdraw() public {
-        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
-        stream.streamWithdraw(0.5 ether, "reason");
-        assertEq(token.balanceOf(address(stream)), (initAmount - 0.5 ether));
-    } */
-
-    // Will pass
-    /* function testStreamWithdraw2() public {
-         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
-        stream.streamWithdraw(0.5 ether, "reason");
-        
-        cheats.warp(1642366800);
-        stream.streamWithdraw(0.4 ether, "reason2");
-    } */
 
     // Will pass as 0x is not beneficiary
     function testStreamWithdraw(uint256 amount) public {
