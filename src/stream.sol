@@ -9,37 +9,58 @@ error NotYourStream();
 error NotEnoughBalance();
 error SendMore();
 error IncreaseByMore();
-error CantWithdrawToBurn();
+error CantWithdrawToBurnAddress();
 error StreamDisabled();
 
 /// @title Simple Stream Contract
-/// @author ghostffcode, jaxcoder
+/// @author ghostffcode, jaxcoder, nowonder
 /// @notice the meat and potatoes of the stream
-contract NotSimpleStream is Ownable, AccessControl {
+contract MultiStream is Ownable, AccessControl {
+
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
     event Withdraw(address indexed to, uint256 amount, string reason);
-    event Deposit(address indexed from, uint256 amount); 
+    event Deposit(address indexed from, uint256 amount);
 
-    /* mapping(address => uint256) balances; */
     mapping(address => uint256) caps;
     mapping(address => uint256) frequencies;
     mapping(address => uint256) last;
-    mapping(address => uint256) payouts;
     mapping(address => bool) disabled;
+
+    string orgName;
+    string logoURI;
+    string orgDescription;
+
+    uint public total_paid;
 
     address[] public users;
 
     IERC20 public dToken;
 
     constructor(
+        string memory _orgName,
+        string memory _logoURI,
+        string memory _orgDescription,
         address _owner,
+        address[] memory _managers,
         address[] memory _addresses,
         uint256[] memory _caps,
         uint256[] memory _frequency,
         bool[] memory _startsFull,
         IERC20 _dToken
     ) {
+
+        orgName = _orgName;
+        logoURI = _logoURI;
+        orgDescription = _orgDescription;
+
         transferOwnership(_owner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+
+        for (uint256 i = 0; i < _managers.length; ++i) {
+            _setupRole(MANAGER_ROLE, _managers[i]);
+        }
+
         for (uint256 i = 0; i < _addresses.length; ++i) {
             caps[_addresses[i]] = _caps[i];
             frequencies[_addresses[i]] = _frequency[i];
@@ -54,13 +75,21 @@ contract NotSimpleStream is Ownable, AccessControl {
         }
     }
 
+    function addManager(address _manager) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        grantRole(MANAGER_ROLE, _manager);
+    }
+
+    function removeManager(address _manager) public onlyRole(DEFAULT_ADMIN_ROLE) {
+        revokeRole(MANAGER_ROLE, _manager);
+    }
+
     /// @dev add a stream for user
     function addStream(
         address _beneficiary,
         uint256 _cap,
         uint256 _frequency,
         bool _startsFull
-    ) public onlyOwner {
+    ) public onlyRole(MANAGER_ROLE) {
         caps[_beneficiary] = _cap;
         frequencies[_beneficiary] = _frequency;
         users.push(_beneficiary);
@@ -75,7 +104,7 @@ contract NotSimpleStream is Ownable, AccessControl {
     /// @dev Transfers remaining balance and disables stream
     function disableStream(
         address _beneficiary
-    ) public onlyOwner {
+    ) public onlyRole(MANAGER_ROLE) {
 
         uint256 totalAmount = streamBalance(_beneficiary);
 
@@ -100,7 +129,7 @@ contract NotSimpleStream is Ownable, AccessControl {
         uint256 _cap,
         uint256 _frequency,
         bool _startsFull
-    ) public onlyOwner {
+    ) public onlyRole(MANAGER_ROLE) {
 
         caps[_beneficiary] = _cap;
             frequencies[_beneficiary] = _frequency;
@@ -129,44 +158,33 @@ contract NotSimpleStream is Ownable, AccessControl {
     /// @param amount amount of withdraw
     function streamWithdraw(
         uint256 amount,
-        string memory reason,
-        address beneficiary
+        string memory reason        
     ) external {
-        if (msg.sender != beneficiary) revert NotYourStream();
-        if (beneficiary == address(0)) revert CantWithdrawToBurn();
-        if (disabled[beneficiary] == true ) revert StreamDisabled();
+        if (msg.sender == address(0)) revert CantWithdrawToBurnAddress();
+        if (disabled[msg.sender] == true ) revert StreamDisabled();
         
-        uint256 totalAmountCanWithdraw = streamBalance(beneficiary);
+        uint256 totalAmountCanWithdraw = streamBalance(msg.sender);
         if (totalAmountCanWithdraw < amount ) revert NotEnoughBalance();
 
-        uint256 cappedLast = block.timestamp - frequencies[beneficiary];
-        if (last[beneficiary] < cappedLast) {
-            last[beneficiary] = cappedLast;
+        uint256 cappedLast = block.timestamp - frequencies[msg.sender];
+        if (last[msg.sender] < cappedLast) {
+            last[msg.sender] = cappedLast;
         }
-        last[beneficiary] =
-            last[beneficiary] +
-            (((block.timestamp - last[beneficiary]) * amount) /
+        last[msg.sender] =
+            last[msg.sender] +
+            (((block.timestamp - last[msg.sender]) * amount) /
                 totalAmountCanWithdraw);
-        emit Withdraw(beneficiary, amount, reason);
-        require(dToken.transfer(beneficiary, amount), "Transfer failed");
-    }
+        emit Withdraw(msg.sender, amount, reason);
+        require(dToken.transfer(msg.sender, amount), "Transfer failed");
 
-    /// @notice Explain to an end user what this does
-    /// @dev Explain to a developer any extra details
-    /// @param  value the amount of the deposit
-    function streamDeposit(uint256 value) external {
-        require(
-            dToken.transferFrom(_msgSender(), address(this), value),
-            "Transfer of tokens is not approved or insufficient funds"
-        );
-         emit Deposit(_msgSender(), value); 
+        total_paid += amount;
     }
 
     /// @dev Increase the cap of the stream
     /// @param _increase how much to increase the cap
     function increaseCap(uint256 _increase, address beneficiary)
         public
-        onlyOwner
+        onlyRole(MANAGER_ROLE)
     {
         if (_increase == 0) revert IncreaseByMore();
         caps[beneficiary] = caps[beneficiary] + _increase;
@@ -176,7 +194,7 @@ contract NotSimpleStream is Ownable, AccessControl {
     /// @param _frequency the new frequency
     function updateFrequency(uint256 _frequency, address beneficiary)
         public
-        onlyOwner
+        onlyRole(MANAGER_ROLE)
     {
         require(_frequency > 0, "Must be greater than 0");
         if (_frequency == 0) revert IncreaseByMore();

@@ -152,6 +152,12 @@ interface CheatCodes {
 
 contract StreamTest is DSTest {
     CheatCodes cheats = CheatCodes(HEVM_ADDRESS);
+
+    string _orgName = "GitcoinDAO";
+    string _logoURI = "placeholder";
+    string _orgDescription = "dem der public goods";
+
+    address[] _managers = [0xa8B3478A436e8B909B5E9636090F2B15f9B311e7];
     address[] _addresses = [0xa8B3478A436e8B909B5E9636090F2B15f9B311e7];
     uint256[] _caps = [0.5 ether];
     uint256[] _freqs = [1296000];
@@ -161,7 +167,7 @@ contract StreamTest is DSTest {
     
     
 
-    NotSimpleStream internal stream;
+    MultiStream internal stream;
     GTC token;
     address deployer = HEVM_ADDRESS;
 
@@ -176,8 +182,12 @@ contract StreamTest is DSTest {
         /* dToken = token; */
 
         token = new GTC(deployer);
-        stream = new NotSimpleStream(
+        stream = new MultiStream(
+            _orgName,
+            _logoURI,
+            _orgDescription,
             me,
+            _managers,
             _addresses,
             _caps,
             _freqs,
@@ -195,55 +205,55 @@ contract StreamTest is DSTest {
     /* // Will pass
     function testStreamWithdraw() public {
         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
-        stream.streamWithdraw(0.5 ether, "reason", me);
+        stream.streamWithdraw(0.5 ether, "reason");
         assertEq(token.balanceOf(address(stream)), (initAmount - 0.5 ether));
     } */
 
     // Will pass
     /* function testStreamWithdraw2() public {
          hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
-        stream.streamWithdraw(0.5 ether, "reason", me);
+        stream.streamWithdraw(0.5 ether, "reason");
         
         cheats.warp(1642366800);
-        stream.streamWithdraw(0.4 ether, "reason2", me);
+        stream.streamWithdraw(0.4 ether, "reason2");
     } */
 
     // Will pass as 0x is not beneficiary
     function testStreamWithdraw(uint256 amount) public {
         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
         cheats.assume(amount < 0.5 ether);
-        stream.streamWithdraw(0.5 ether, "reason", me);
+        stream.streamWithdraw(0.5 ether, "reason");
 
         /* try withdrawing again almost 2 weeks into the future,
          with an amount up 0.499 eth */
         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
         cheats.warp(1642366800);
-        stream.streamWithdraw(0.5 ether, "reason", me);
+        stream.streamWithdraw(0.5 ether, "reason");
     }
 
     function testFailWithdrawTooMuchTooSoon() public {
         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
         
-        stream.streamWithdraw(0.5 ether, "reason", me);
+        stream.streamWithdraw(0.5 ether, "reason");
 
         // try withdrawing again *almost* 2 weeks into the future (fails)
         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
         cheats.warp(1642366799);
-        stream.streamWithdraw(0.5 ether, "reason", me);
+        stream.streamWithdraw(0.5 ether, "reason");
     }
 
     function testFailWithdrawTooMuch(uint256 amount) public {
         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
         cheats.assume(amount > 0.5 ether);
-        stream.streamWithdraw(amount, "reason", me);
+        stream.streamWithdraw(amount, "reason");
 
         /* // try withdrawing again
-        stream.streamWithdraw(0.5 ether, "reason", me); */
+        stream.streamWithdraw(0.5 ether, "reason"); */
     }
 
      // Will pass as 0x is not beneficiary
     function testFailStreamWithdraw2() public {
         hevm.prank(address(0));
-        stream.streamWithdraw(0.5 ether, "reason", me);
+        stream.streamWithdraw(0.5 ether, "reason");
     }
 }
