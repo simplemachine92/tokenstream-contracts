@@ -18,6 +18,7 @@ function setUp() public {
   }
 } */
 
+// Fold at line below in your IDE for a better view...
 interface CheatCodes {
     function warp(uint256) external;
 
@@ -164,8 +165,6 @@ contract StreamTest is DSTest {
     bool[] _startsF = [true];
 
     address payable me = payable(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7);
-    
-    
 
     MultiStream internal stream;
     GTC token;
@@ -173,13 +172,10 @@ contract StreamTest is DSTest {
 
     Vm internal constant hevm = Vm(HEVM_ADDRESS);
 
-    /* uint256 balance = token.balanceOf(address(stream)); */
     uint256 initAmount = 1000000000000000000000; // or 1000 tokens
 
     function setUp() public {
         cheats.warp(1641070800);
-        /* IERC20 dToken; */
-        /* dToken = token; */
 
         token = new GTC(deployer);
         stream = new MultiStream(
@@ -196,26 +192,122 @@ contract StreamTest is DSTest {
     }
 
     function testInitBalance() public {
+        // Make sure we have an initial balance to test withdraws to authorized users
         assertEq(token.balanceOf(address(stream)), initAmount);
     }
 
-    // Will pass as 0x is not beneficiary
-    function testStreamWithdraw(uint256 amount) public {
-        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
-        cheats.assume(amount < 0.5 ether);
-        stream.streamWithdraw(0.5 ether, "reason");
+    function testManagerFunctions(uint256 amount) public {
+        // Address "me" was included in constructer as "owner", so it can assign roles
+        cheats.prank((address(me)));
+        // Gives self manager role
+        stream.addManager(me);
 
-        /* try withdrawing again almost 2 weeks into the future,
-         with an amount up 0.499 eth */
+        // Call addStream() with recently granted manager role
+        cheats.prank((address(me)));
+        stream.addStream(
+            address(0xb010ca9Be09C382A9f31b79493bb232bCC319f01),
+            0.5 ether,
+            1296000,
+            true
+        );
+
+        // Withdraw from newly created stream as it has "true" for startsFull
+        cheats.prank(address(0xb010ca9Be09C382A9f31b79493bb232bCC319f01));
+        stream.streamWithdraw(0.5 ether, "reason");
+        assertEq(
+            stream.streamBalance(0xb010ca9Be09C382A9f31b79493bb232bCC319f01),
+            0
+        );
+
+        cheats.prank((address(me)));
+
+        // We limit increases to under "1 ether" in contract to avoid int overflow in streamBalance
+        cheats.assume(amount < 0.5 ether && amount > 0);
+        stream.increaseCap(amount, 0xb010ca9Be09C382A9f31b79493bb232bCC319f01);
+
+        // Warp two-weeks later, stream is full again.
+        cheats.warp(1642366800);
+
+        // Balance is updating correctly over time
+        assertEq(
+            stream.streamBalance(0xb010ca9Be09C382A9f31b79493bb232bCC319f01),
+            0.5 ether + amount
+        );
+
+        cheats.prank(address(0xb010ca9Be09C382A9f31b79493bb232bCC319f01));
+
+        // Withdraw new balance accumulated after stream cap update
+        stream.streamWithdraw(0.5 ether + amount, "reason");
+    }
+
+    function testStreamWithdraw(uint256 amount) public {
+        // Acting as permitted stream user address 0xa8B3...11e7
+        hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
+
+        // Fuzz test all viable amounts, > would fail here..
+        cheats.assume(amount < 0.5 ether);
+
+        // Calls from 0xa8B3...11e7
+        stream.streamWithdraw(amount, "reason");
+
+        // Ensure contract balance is proper after withdraw from stream
+        assertEq(token.balanceOf(address(stream)), initAmount - amount);
+
+        /* try withdrawing again almost 2 weeks into the future, when stream should be full */
         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
         cheats.warp(1642366800);
         stream.streamWithdraw(0.5 ether, "reason");
     }
 
+    function testFailWithdrawFromDisabled() public {
+        // Warp to where stream should be full but disable it next
+        cheats.warp(1643662800);
+
+        // Disable it here
+        cheats.prank((address(me)));
+        stream.disableStream(0xb010ca9Be09C382A9f31b79493bb232bCC319f01);
+
+        // User tries withdrawing from disabled stream
+        cheats.prank(address(0xb010ca9Be09C382A9f31b79493bb232bCC319f01));
+        // Fails
+        stream.streamWithdraw(0.5 ether, "reason");
+    }
+
+    function testReactivateStream() public {
+        /* cheats.prank(address(0xb010ca9Be09C382A9f31b79493bb232bCC319f01));
+        stream.streamWithdraw(0.5 ether, "reason"); */
+
+        // Lines above would fail currently, so let's re-activate the stream..
+
+        // Not exactly sure why we need to re-init manager role, but here we are..
+        cheats.prank((address(me)));
+        // Gives self manager role
+        stream.addManager(me);
+
+        cheats.prank((address(me)));
+        stream.enableStream(
+            address(0xb010ca9Be09C382A9f31b79493bb232bCC319f01),
+            0.5 ether,
+            1296000,
+            true
+        );
+
+        cheats.prank(address(0xb010ca9Be09C382A9f31b79493bb232bCC319f01));
+        stream.streamWithdraw(0.5 ether, "reason");
+        // Make sure balance is updating properly
+        assertEq(
+            stream.streamBalance(0xb010ca9Be09C382A9f31b79493bb232bCC319f01),
+            0
+        );
+    }
+
     function testFailWithdrawTooMuchTooSoon() public {
         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
-        
+
         stream.streamWithdraw(0.5 ether, "reason");
+
+        // just testing logging through ds-test
+        /* emit log_address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7); */
 
         // try withdrawing again *almost* 2 weeks into the future (fails)
         hevm.prank(address(0xa8B3478A436e8B909B5E9636090F2B15f9B311e7));
@@ -232,7 +324,7 @@ contract StreamTest is DSTest {
         stream.streamWithdraw(0.5 ether, "reason"); */
     }
 
-     // Will pass as 0x is not beneficiary
+    // Will pass as 0x is not beneficiary
     function testFailStreamWithdraw2() public {
         hevm.prank(address(0));
         stream.streamWithdraw(0.5 ether, "reason");
